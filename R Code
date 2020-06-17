@@ -1,4 +1,3 @@
-setwd("C:/Users/Start/OneDrive/Desktop/stat")
 starbucks_drink <- read.csv(file="starbucks_drinkmenu.csv",head=TRUE, sep=",")
 
 #vector with all 100% Daily Value amounts
