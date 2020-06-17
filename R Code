@@ -1,0 +1,62 @@
+starbucks_drink <- read.csv(file="starbucks_drinkmenu.csv",head=TRUE, sep=",")
+
+#vector with all 100% Daily Value amounts
+DV <- c(2000,78,20,2,300,2300,275,28,50,50,100,100,100,100,1)
+
+#Weights based on which nutrients are positive/negative towards health
+weights <- 100*c(0,0,-1,-1.25,-1,-1,0,1,-1,1,0.75,1,0.75,1,0)
+
+starbucks_num <- starbucks_drink
+#some data points have %'s, which need to be removed and converted into numeric values
+#rows 1-2 are string values, not numbers so the tranformations start at row 3
+starbucks_num[,3:17] <- lapply(starbucks_num[3:17], gsub, pattern='%', replacement='')
+starbucks_num[,3:17] <- lapply(starbucks_num[,3:17],as.numeric)
+
+#Transpose is used here to perform the multiplication on the rows, not the columns
+starbucks_num[,3:17] <- t(t(starbucks_num[,3:17])/DV)
+starbucks_num[,3:17] <- t(t(starbucks_num[,3:17])*weights)
+
+#aggregated health scores
+starbucks_num$health_score <- with(starbucks_num, rowSums(starbucks_num[,3:17], na.rm = TRUE))
+starbucks_num <- starbucks_num[order(starbucks_num$health_score,decreasing = TRUE),]
+
+summary(starbucks_num$health_score)
+write.table(starbucks_num, "c:/Users/Start/OneDrive/Desktop/stat/starbucks_num.txt", sep="\t")
+
+#summary statistics for beverage categories
+unique(starbucks_num$Beverage_category)
+category_names <- c('Smoothies','Clasc.Espresso','Sign.Espresso','Coffee','Tazo Tea','Shaken Iced Bev.','Frap.B.Light',
+                    'Frap.B.Coffee','Frap.B.Creme')
+c1 <- starbucks_num[starbucks_num$Beverage_category=='Smoothies',]
+c2 <- starbucks_num[starbucks_num$Beverage_category=='Classic Espresso Drinks',]
+c3 <- starbucks_num[starbucks_num$Beverage_category=='Signature Espresso Drinks',]
+c4 <- starbucks_num[starbucks_num$Beverage_category=='Coffee',]
+c5 <- starbucks_num[starbucks_num$Beverage_category=='Tazo Tea Drinks',]
+c6 <- starbucks_num[starbucks_num$Beverage_category=='Shaken Iced Beverages',]
+c7 <- starbucks_num[starbucks_num$Beverage_category=='Frappuccino Light Blended Coffee',]
+c8 <- starbucks_num[starbucks_num$Beverage_category=='Frappuccino Blended Coffee',]
+c9 <- starbucks_num[starbucks_num$Beverage_category=='Frappuccino Blended Creme',]
+
+#box plot showing summary statistics for each category
+par(cex.axis=0.75)
+boxplot(c1$health_score,c2$health_score,c3$health_score,c4$health_score,c5$health_score,
+        c6$health_score,c7$health_score,c8$health_score,c9$health_score,
+        names=category_names,main= "Health Score by Beverage Category",
+        xlab = "Beverage Category", ylab = "Health Rating %",ylim=c(-160,117) )
+abline(a=1,b=0)
+
+#sugar analysis
+high_sugar <- starbucks_num[which(starbucks_num$Sugars.g <= -50),]
+nrow(high_sugar)
+#62 of 105 drinks contain over 50% of the recommended Sugar DV
+
+#analysis on caffeine per calorie content
+caffeine <- as.numeric(gsub("Varies",NA,starbucks_drink$Caffeine.mg,ignore.case = TRUE))
+calories <- as.numeric(starbucks_drink$Calories)
+cafcal_data <- cbind(starbucks_drink[2],starbucks_drink[17],starbucks_drink[3],caffeine/calories)
+print(cafcal_data[order(cafcal_data$'caffeine/calories',decreasing=TRUE),], digits=1)
+
+#analysis on caffeine per carbs content
+carbs <- as.numeric(starbucks_drink$Total.Carbohydrates.g)
+cafcarb_data <- cbind(starbucks_drink[2],starbucks_drink[17],starbucks_drink[9],caffeine/carbs)
+print(cafcarb_data[order(cafcarb_data$'caffeine/carbs',decreasing=TRUE),], digits=1)
